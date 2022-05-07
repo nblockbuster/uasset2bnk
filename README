@@ -1,0 +1,7 @@
+Usage:
+
+ua2bnk [file_path]
+
+for batch conversion:
+
+ua2bnk [folder_path]

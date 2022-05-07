@@ -11,34 +11,10 @@ bool convert_uasset(std::string path)
 	input_uasset.read((char*)uadata, fsz);
 	input_uasset.close();
 
-	uint32_t val = 0, off = 0, bnkSize = 0;
+	int bnkSize;
 
-	for (int x = 0; x < fsz; x += 4)
-	{
-		if (x < fsz)
-		{
-			memcpy((char*)&val, uadata + x, 4);
-		}
-		else
-		{
-			std::cerr << "Could not find a valid soundbank.";
-			exit(5);
-		}
+	unsigned char* bnkBuffer = convert_memory_uasset(uadata, fsz, bnkSize);
 
-		if (val == 0x44484B42) //search for BKHD
-		{
-			break;
-		}
-		else if (val == 0x484B4200) //alternative 0BKH for files where the start of the bnk isn't an increment of 4
-		{
-			off = x + 1;
-			break;
-		}
-	}
-
-	memcpy((char*)&bnkSize, uadata + off - 0x4, 4);
-	unsigned char* bnkBuffer = new unsigned char[bnkSize];
-	memcpy(bnkBuffer, uadata + off, bnkSize);
 	std::string bnkPath = path.substr(0, path.size() - 7) + ".bnk";
 	FILE* outputBnk = NULL;
 	outputBnk = fopen(bnkPath.c_str(), "wb");
@@ -55,6 +31,40 @@ bool convert_uasset(std::string path)
 		perror("Conversion Failed");
 		return false;
 	}
+}
+
+unsigned char* convert_memory_uasset(unsigned char* uasset, int fileSize, int& bnkSize)
+{
+	uint32_t val = 0, off = 0;
+
+	while (true)
+	{
+		if (off < fileSize)
+		{
+			memcpy((char*)&val, uasset + off, 4);
+		}
+		else
+		{
+			std::cerr << "Could not find a valid soundbank.";
+			exit(5);
+		}
+
+		if (val == 0x44484B42) //search for BKHD
+		{
+			break;
+		}
+		else if (val == 0x484B4200) //alternative 0BKH for files where the start of the bnk isn't an increment of 4
+		{
+			off += 1;
+			break;
+		}
+		off += 4;
+	}
+
+	memcpy((char*)&bnkSize, uasset + off - 0x4, 4);
+	unsigned char* bnkBuffer = new unsigned char[bnkSize];
+	memcpy(bnkBuffer, uasset + off, bnkSize);
+	return bnkBuffer;
 }
 
 int main(int argc, char* argv[])
